@@ -1,36 +1,75 @@
 const agentesRepository = require('../repositories/agentesRepository');
 
-function getAllAgentes(req, res) {
-  const agentes = agentesRepository.findAll();
-  res.status(200).json(agentes);
-}
-
-function getAgenteById(req, res) {
-  const id = req.params.id;
-  const agente = agentesRepository.findById(id);
-
-  if (!agente) {
-    return res.status(404).json({ message: "Agente não encontrado" });
-  }
-
-  res.status(200).json(agente);
-}
-
-function createAgente(req, res) {
-  const novoAgente = req.body;
-
+function updateAgente(req, res, next) {
   try {
-    const agenteCriado = agentesRepository.create(novoAgente);
-    res.status(201).json(agenteCriado);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    const id = req.params.id;
+
+    if (!agentesRepository.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
+    const { nome, matricula, especialidade } = req.body;
+
+    if (!nome || !matricula) {
+      throw { status: 400, message: 'Campos obrigatórios: nome, matricula' };
+    }
+
+    const agenteAtualizado = agentesRepository.update(id, { nome, matricula, especialidade });
+
+    if (!agenteAtualizado) {
+      throw { status: 404, message: "Agente não encontrado" };
+    }
+
+    return res.status(200).json(agenteAtualizado);
+  } catch (error) {
+    next(error);
   }
 }
 
-// (Você também pode fazer update completo, parcial e delete)
+function partialUpdateAgente(req, res, next) {
+  try {
+    const id = req.params.id;
+
+    if (!agentesRepository.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
+    const data = req.body;
+
+    const agenteAtualizado = agentesRepository.partialUpdate(id, data);
+
+    if (!agenteAtualizado) {
+      throw { status: 404, message: "Agente não encontrado" };
+    }
+
+    return res.status(200).json(agenteAtualizado);
+  } catch (error) {
+    next(error);
+  }
+}
+
+function deleteAgente(req, res, next) {
+  try {
+    const id = req.params.id;
+
+    if (!agentesRepository.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
+    const sucesso = agentesRepository.remove(id);
+
+    if (!sucesso) {
+      throw { status: 404, message: "Agente não encontrado" };
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
 
 module.exports = {
-  getAllAgentes,
-  getAgenteById,
-  createAgente,
+  updateAgente,
+  partialUpdateAgente,
+  deleteAgente
 };
