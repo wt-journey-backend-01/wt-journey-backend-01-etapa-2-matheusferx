@@ -1,0 +1,47 @@
+const { v4: uuidv4 } = require('uuid');
+
+let casos = [];
+
+function getAll() {
+    return casos;
+}
+
+function getById(id) {
+    return casos.find(caso => caso.id === id);
+}
+
+function create(data) {
+    const novoCaso = { id: uuidv4(), ...data };
+    casos.push(novoCaso);
+    return novoCaso;
+}
+
+function update(id, data) {
+    const index = casos.findIndex(caso => caso.id === id);
+    if (index === -1) return null;
+    casos[index] = { id, ...data };
+    return casos[index];
+}
+
+function partialUpdate(id, data) {
+    const caso = getById(id);
+    if (!caso) return null;
+    Object.assign(caso, data);
+    return caso;
+}
+
+function remove(id) {
+    const index = casos.findIndex(caso => caso.id === id);
+    if (index === -1) return false;
+    casos.splice(index, 1);
+    return true;
+}
+
+module.exports = {
+    getAll,
+    getById,
+    create,
+    update,
+    partialUpdate,
+    remove,
+};
