@@ -1,12 +1,12 @@
+const { v4: uuidv4 } = require('uuid');
 let agentes = [];
-let nextId = 1;
 
 function findAll() {
   return agentes;
 }
 
 function findById(id) {
-  return agentes.find(agente => agente.id === Number(id));
+  return agentes.find(agente => agente.id === id);
 }
 
 function create(data) {
@@ -15,7 +15,7 @@ function create(data) {
   }
 
   const novoAgente = {
-    id: nextId++,
+    id: uuidv4(),
     nome: data.nome,
     matricula: data.matricula,
     especialidade: data.especialidade || null,
@@ -26,7 +26,7 @@ function create(data) {
 }
 
 function update(id, data) {
-  const index = agentes.findIndex(agente => agente.id === Number(id));
+  const index = agentes.findIndex(agente => agente.id === id);
   if (index === -1) return null;
 
   if (!data.nome || !data.matricula) {
@@ -34,7 +34,7 @@ function update(id, data) {
   }
 
   const agenteAtualizado = {
-    id: Number(id),
+    id,
     nome: data.nome,
     matricula: data.matricula,
     especialidade: data.especialidade || null,
@@ -45,14 +45,14 @@ function update(id, data) {
 }
 
 function partialUpdate(id, data) {
-  const index = agentes.findIndex(agente => agente.id === Number(id));
+  const index = agentes.findIndex(agente => agente.id === id);
   if (index === -1) return null;
 
   const agenteAtual = agentes[index];
   const agenteAtualizado = {
     ...agenteAtual,
     ...data,
-    id: Number(id)
+    id
   };
 
   agentes[index] = agenteAtualizado;
@@ -60,7 +60,7 @@ function partialUpdate(id, data) {
 }
 
 function remove(id) {
-  const index = agentes.findIndex(agente => agente.id === Number(id));
+  const index = agentes.findIndex(agente => agente.id === id);
   if (index === -1) return false;
 
   agentes.splice(index, 1);
@@ -68,7 +68,8 @@ function remove(id) {
 }
 
 function isValidId(id) {
-  return !isNaN(id) && Number.isInteger(Number(id)) && Number(id) > 0;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
 }
 
 module.exports = {
