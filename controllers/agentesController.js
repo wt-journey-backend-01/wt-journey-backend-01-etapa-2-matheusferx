@@ -16,6 +16,11 @@ function getAllAgentes(req, res, next) {
         if (!a.data_incorporacao || !b.data_incorporacao) return 0;
         return new Date(a.data_incorporacao) - new Date(b.data_incorporacao);
       });
+    } else if (orderBy === '-data_incorporacao') {
+      agentes = agentes.sort((a, b) => {
+        if (!a.data_incorporacao || !b.data_incorporacao) return 0;
+        return new Date(b.data_incorporacao) - new Date(a.data_incorporacao);
+      });
     }
 
     return res.status(200).json(agentes);

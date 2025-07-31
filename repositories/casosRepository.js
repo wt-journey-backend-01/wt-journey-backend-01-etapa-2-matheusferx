@@ -26,8 +26,10 @@ function update(id, data) {
 function partialUpdate(id, data) {
     const caso = getById(id);
     if (!caso) return null;
-    Object.assign(caso, data);
-    return caso;
+    const index = casos.findIndex(caso => caso.id === id);
+    if (index === -1) return null;
+    casos[index] = { ...casos[index], ...data, id };
+    return casos[index];
 }
 
 function remove(id) {
