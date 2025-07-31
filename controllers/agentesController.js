@@ -1,5 +1,48 @@
 const agentesRepository = require('../repositories/agentesRepository');
 
+function getAllAgentes(req, res, next) {
+  try {
+    const agentes = agentesRepository.findAll();
+    return res.status(200).json(agentes);
+  } catch (error) {
+    next(error);
+  }
+}
+
+function getAgenteById(req, res, next) {
+  try {
+    const id = req.params.id;
+
+    if (!agentesRepository.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
+    const agente = agentesRepository.findById(id);
+    if (!agente) {
+      throw { status: 404, message: "Agente não encontrado" };
+    }
+
+    return res.status(200).json(agente);
+  } catch (error) {
+    next(error);
+  }
+}
+
+function createAgente(req, res, next) {
+  try {
+    const { nome, matricula, especialidade } = req.body;
+
+    if (!nome || !matricula) {
+      throw { status: 400, message: 'Campos obrigatórios: nome, matricula' };
+    }
+
+    const novoAgente = agentesRepository.create({ nome, matricula, especialidade });
+    return res.status(201).json(novoAgente);
+  } catch (error) {
+    next(error);
+  }
+}
+
 function updateAgente(req, res, next) {
   try {
     const id = req.params.id;
@@ -69,6 +112,9 @@ function deleteAgente(req, res, next) {
 }
 
 module.exports = {
+  getAllAgentes,
+  getAgenteById,
+  createAgente,
   updateAgente,
   partialUpdateAgente,
   deleteAgente

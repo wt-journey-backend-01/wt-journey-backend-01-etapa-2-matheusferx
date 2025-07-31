@@ -3,7 +3,7 @@ const app = express();
 
 const agentesRoutes = require('./routes/agentesRoutes');
 const casosRoutes = require('./routes/casosRoutes');
-const errorHandler = require('./middlewares/errorHandler');
+const errorHandler = require('./utils/errorHandler');
 
 app.use(express.json());
 
