@@ -13,13 +13,15 @@ function getAllAgentes(req, res, next) {
     // Ordenação por data de incorporação
     if (orderBy === 'data_incorporacao') {
       agentes = agentes.sort((a, b) => {
-        if (!a.data_incorporacao || !b.data_incorporacao) return 0;
-        return new Date(a.data_incorporacao) - new Date(b.data_incorporacao);
+        const dateA = a.data_incorporacao ? new Date(a.data_incorporacao) : new Date(0);
+        const dateB = b.data_incorporacao ? new Date(b.data_incorporacao) : new Date(0);
+        return dateA - dateB;
       });
     } else if (orderBy === '-data_incorporacao') {
       agentes = agentes.sort((a, b) => {
-        if (!a.data_incorporacao || !b.data_incorporacao) return 0;
-        return new Date(b.data_incorporacao) - new Date(a.data_incorporacao);
+        const dateA = a.data_incorporacao ? new Date(a.data_incorporacao) : new Date(0);
+        const dateB = b.data_incorporacao ? new Date(b.data_incorporacao) : new Date(0);
+        return dateB - dateA;
       });
     }
 
@@ -34,7 +36,7 @@ function getAgenteById(req, res, next) {
     const id = req.params.id;
 
     if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de agente inválido" };
     }
 
     const agente = agentesRepository.findById(id);
@@ -68,7 +70,7 @@ function updateAgente(req, res, next) {
     const id = req.params.id;
 
     if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de agente inválido" };
     }
 
     const { nome, matricula, especialidade } = req.body;
@@ -94,7 +96,7 @@ function partialUpdateAgente(req, res, next) {
     const id = req.params.id;
 
     if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de agente inválido" };
     }
 
     const data = req.body;
@@ -116,9 +118,9 @@ function deleteAgente(req, res, next) {
     const id = req.params.id;
 
     if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de agente inválido" };
     }
-
+    
     const sucesso = agentesRepository.remove(id);
 
     if (!sucesso) {

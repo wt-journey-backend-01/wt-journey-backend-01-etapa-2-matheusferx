@@ -1,4 +1,5 @@
-const { v4: uuidv4, validate, version } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
+const { validate, version } = require('uuid');
 
 let casos = [];
 
@@ -10,10 +11,16 @@ function getById(id) {
     return casos.find(caso => caso.id === id);
 }
 
-function create(data) {
-    const novoCaso = { id: uuidv4(), ...data };
-    casos.push(novoCaso);
-    return novoCaso;
+function create({ titulo, descricao, status, agente_id }) {
+  const novo = {
+    id: uuidv4(),
+    titulo,
+    descricao,
+    status,
+    agente_id,
+  };
+  casos.push(novo);
+  return novo;
 }
 
 function update(id, data) {

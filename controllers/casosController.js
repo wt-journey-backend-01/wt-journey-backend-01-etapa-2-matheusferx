@@ -17,7 +17,7 @@ function validarCasoCompleto({ titulo, descricao, status, agente_id }) {
   }
 
   if (!isValidStatus(status)) {
-    throw { status: 400, message: 'Status inválido' };
+    throw { status: 400, message: "O campo 'status' pode ser somente 'aberto' ou 'solucionado'" };
   }
 
   if (!agentesRepository.isValidId(agente_id)) {
@@ -68,7 +68,7 @@ function getCasoPorId(req, res, next) {
     const id = req.params.id;
 
     if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de caso inválido" };
     }
 
     const caso = casosRepository.getById(id);
@@ -97,7 +97,7 @@ function updateCaso(req, res, next) {
     const id = req.params.id;
 
     if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de caso inválido" };
     }
 
     validarCasoCompleto(req.body);
@@ -114,13 +114,13 @@ function partialUpdateCaso(req, res, next) {
     const id = req.params.id;
 
     if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de caso inválido" };
     }
 
     const { status, agente_id } = req.body;
 
     if (status && !isValidStatus(status)) {
-      throw { status: 400, message: 'Status inválido' };
+      throw { status: 400, message: "O campo 'status' pode ser somente 'aberto' ou 'solucionado'" };
     }
 
     if (agente_id) {
@@ -145,8 +145,9 @@ function deleteCaso(req, res, next) {
     const id = req.params.id;
 
     if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID inválido" };
+      throw { status: 400, message: "ID de caso inválido" };
     }
+
 
     const sucesso = casosRepository.remove(id);
     if (!sucesso) throw { status: 404, message: 'Caso não encontrado' };
