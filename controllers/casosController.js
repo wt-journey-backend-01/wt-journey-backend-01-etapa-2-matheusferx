@@ -7,88 +7,104 @@ function isValidStatus(status) {
 
 function validarCasoCompleto({ titulo, descricao, status, agente_id }) {
   if (!titulo || !descricao || !status || !agente_id) {
-    return 'Campos obrigatórios faltando';
+    throw { status: 400, message: 'Campos obrigatórios faltando' };
   }
 
   if (!isValidStatus(status)) {
-    return 'Status inválido';
+    throw { status: 400, message: 'Status inválido' };
   }
 
   if (!agentesRepo.isValidId(agente_id)) {
-    return 'agente_id inválido';
+    throw { status: 400, message: 'agente_id inválido' };
   }
 
   const agenteExiste = agentesRepo.findById(agente_id);
   if (!agenteExiste) {
-    return 'Agente não encontrado';
+    throw { status: 404, message: 'Agente não encontrado' };
   }
-
-  return null;
 }
 
-function getAll(req, res) {
-  const casos = repo.getAll();
-  return res.json(casos);
-}
-
-function getById(req, res) {
-  const caso = repo.getById(req.params.id);
-  if (!caso) return res.status(404).json({ erro: 'Caso não encontrado' });
-  return res.json(caso);
-}
-
-function create(req, res) {
-  const erroValidacao = validarCasoCompleto(req.body);
-  if (erroValidacao) return res.status(400).json({ erro: erroValidacao });
-
-  const novo = repo.create(req.body);
-  return res.status(201).json(novo);
-}
-
-function update(req, res) {
-  const erroValidacao = validarCasoCompleto(req.body);
-  if (erroValidacao) return res.status(400).json({ erro: erroValidacao });
-
-  const atualizado = repo.update(req.params.id, req.body);
-  if (!atualizado) return res.status(404).json({ erro: 'Caso não encontrado' });
-
-  return res.json(atualizado);
-}
-
-function partialUpdate(req, res) {
-  const { status, agente_id } = req.body;
-
-  if (status && !isValidStatus(status)) {
-    return res.status(400).json({ erro: 'Status inválido' });
+function getAllCasos(req, res, next) {
+  try {
+    const casos = repo.getAll();
+    return res.json(casos);
+  } catch (err) {
+    next(err);
   }
+}
 
-  if (agente_id) {
-    if (!agentesRepo.isValidId(agente_id)) {
-      return res.status(400).json({ erro: 'agente_id inválido' });
+function getCasoPorId(req, res, next) {
+  try {
+    const caso = repo.getById(req.params.id);
+    if (!caso) throw { status: 404, message: 'Caso não encontrado' };
+    return res.json(caso);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function createCaso(req, res, next) {
+  try {
+    validarCasoCompleto(req.body);
+    const novo = repo.create(req.body);
+    return res.status(201).json(novo);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function updateCaso(req, res, next) {
+  try {
+    validarCasoCompleto(req.body);
+    const atualizado = repo.update(req.params.id, req.body);
+    if (!atualizado) throw { status: 404, message: 'Caso não encontrado' };
+    return res.json(atualizado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+function partialUpdateCaso(req, res, next) {
+  try {
+    const { status, agente_id } = req.body;
+
+    if (status && !isValidStatus(status)) {
+      throw { status: 400, message: 'Status inválido' };
     }
-    const agenteExiste = agentesRepo.findById(agente_id);
-    if (!agenteExiste) {
-      return res.status(404).json({ erro: 'Agente não encontrado' });
+
+    if (agente_id) {
+      if (!agentesRepo.isValidId(agente_id)) {
+        throw { status: 400, message: 'agente_id inválido' };
+      }
+      const agenteExiste = agentesRepo.findById(agente_id);
+      if (!agenteExiste) {
+        throw { status: 404, message: 'Agente não encontrado' };
+      }
     }
+
+    const atualizado = repo.partialUpdate(req.params.id, req.body);
+    if (!atualizado) throw { status: 404, message: 'Caso não encontrado' };
+    return res.json(atualizado);
+  } catch (err) {
+    next(err);
   }
-
-  const atualizado = repo.partialUpdate(req.params.id, req.body);
-  if (!atualizado) return res.status(404).json({ erro: 'Caso não encontrado' });
-
-  return res.json(atualizado);
 }
 
-function remove(req, res) {
-  const sucesso = repo.remove(req.params.id);
-  if (!sucesso) return res.status(404).json({ erro: 'Caso não encontrado' });
-  return res.status(204).send();
+function deleteCaso(req, res, next) {
+  try {
+    const sucesso = repo.remove(req.params.id);
+    if (!sucesso) throw { status: 404, message: 'Caso não encontrado' };
+    return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = {
-  getAll,
-  getById,
-  create,
-  update,
-  partialUpdate,
-  remove,
+  getAllCasos,
+  getCasoPorId,
+  createCaso,
+  updateCaso,
+  partialUpdateCaso,
+  deleteCaso,
 };

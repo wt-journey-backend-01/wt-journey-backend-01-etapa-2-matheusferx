@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4, validate, version } = require('uuid');
 
 let casos = [];
 
@@ -38,8 +38,7 @@ function remove(id) {
 }
 
 function isValidId(id) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(id);
+  return validate(id) && version(id) === 4;
 }
 
 module.exports = {
@@ -49,5 +48,5 @@ module.exports = {
     update,
     partialUpdate,
     remove,
-    isValidId // ← agora exportando corretamente
+    isValidId
 };
