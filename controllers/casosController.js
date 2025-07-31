@@ -26,7 +26,31 @@ function validarCasoCompleto({ titulo, descricao, status, agente_id }) {
 
 function getAllCasos(req, res, next) {
   try {
-    const casos = repo.getAll();
+    let casos = repo.getAll();
+    const { status } = req.query;
+
+    if (status) {
+      if (!['aberto', 'solucionado'].includes(status)) {
+        return res.status(400).json({ error: 'Status inválido para filtro' });
+      }
+      casos = casos.filter(caso => caso.status === status);
+    }
+
+    if (agente_id) {
+      if (!agentesRepo.isValidId(agente_id)) {
+        return res.status(400).json({ error: 'agente_id inválido para filtro' });
+      }
+      casos = casos.filter(caso => caso.agente_id === agente_id);
+    }
+
+    if (keyword) {
+      const lower = keyword.toLowerCase();
+      casos = casos.filter(caso =>
+        caso.titulo?.toLowerCase().includes(lower) ||
+        caso.descricao?.toLowerCase().includes(lower)
+      );
+    }
+
     return res.json(casos);
   } catch (err) {
     next(err);
@@ -35,8 +59,17 @@ function getAllCasos(req, res, next) {
 
 function getCasoPorId(req, res, next) {
   try {
-    const caso = repo.getById(req.params.id);
-    if (!caso) throw { status: 404, message: 'Caso não encontrado' };
+    const id = req.params.id;
+
+    if (!repo.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
+    const caso = repo.getById(id);
+    if (!caso) {
+      throw { status: 404, message: "Caso não encontrado" };
+    }
+
     return res.json(caso);
   } catch (err) {
     next(err);
@@ -55,8 +88,14 @@ function createCaso(req, res, next) {
 
 function updateCaso(req, res, next) {
   try {
+    const id = req.params.id;
+
+    if (!repo.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
     validarCasoCompleto(req.body);
-    const atualizado = repo.update(req.params.id, req.body);
+    const atualizado = repo.update(id, req.body);
     if (!atualizado) throw { status: 404, message: 'Caso não encontrado' };
     return res.json(atualizado);
   } catch (err) {
@@ -66,6 +105,12 @@ function updateCaso(req, res, next) {
 
 function partialUpdateCaso(req, res, next) {
   try {
+    const id = req.params.id;
+
+    if (!repo.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
     const { status, agente_id } = req.body;
 
     if (status && !isValidStatus(status)) {
@@ -81,8 +126,7 @@ function partialUpdateCaso(req, res, next) {
         throw { status: 404, message: 'Agente não encontrado' };
       }
     }
-
-    const atualizado = repo.partialUpdate(req.params.id, req.body);
+    const atualizado = repo.partialUpdate(id, req.body);
     if (!atualizado) throw { status: 404, message: 'Caso não encontrado' };
     return res.json(atualizado);
   } catch (err) {
@@ -92,7 +136,13 @@ function partialUpdateCaso(req, res, next) {
 
 function deleteCaso(req, res, next) {
   try {
-    const sucesso = repo.remove(req.params.id);
+    const id = req.params.id;
+
+    if (!repo.isValidId(id)) {
+      throw { status: 400, message: "ID inválido" };
+    }
+
+    const sucesso = repo.remove(id);
     if (!sucesso) throw { status: 404, message: 'Caso não encontrado' };
     return res.status(204).send();
   } catch (err) {

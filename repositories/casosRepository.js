@@ -19,7 +19,7 @@ function create(data) {
 function update(id, data) {
     const index = casos.findIndex(caso => caso.id === id);
     if (index === -1) return null;
-    casos[index] = { id, ...data };
+    casos[index] = { ...casos[index], ...data, id };
     return casos[index];
 }
 

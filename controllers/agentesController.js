@@ -2,7 +2,22 @@ const agentesRepository = require('../repositories/agentesRepository');
 
 function getAllAgentes(req, res, next) {
   try {
-    const agentes = agentesRepository.findAll();
+    let agentes = agentesRepository.findAll();
+    const { especialidade, orderBy } = req.query;
+
+    // Filtro por especialidade
+    if (especialidade) {
+      agentes = agentes.filter(a => a.especialidade === especialidade);
+    }
+
+    // Ordenação por data de incorporação
+    if (orderBy === 'data_incorporacao') {
+      agentes = agentes.sort((a, b) => {
+        if (!a.data_incorporacao || !b.data_incorporacao) return 0;
+        return new Date(a.data_incorporacao) - new Date(b.data_incorporacao);
+      });
+    }
+
     return res.status(200).json(agentes);
   } catch (error) {
     next(error);
