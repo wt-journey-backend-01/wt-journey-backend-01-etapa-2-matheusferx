@@ -1,135 +1,94 @@
 const agentesRepository = require('../repositories/agentesRepository');
+const validarAgenteCompleto = require('../utils/validarAgente');
 
-function getAllAgentes(req, res, next) {
+function getAllAgentes(req, res) {
   try {
-    let agentes = agentesRepository.findAll();
-    const { especialidade, orderBy } = req.query;
+    const agentes = agentesRepository.findAll();
+    const { cargo, sort } = req.query;
 
-    // Filtro por especialidade
-    if (especialidade) {
-      agentes = agentes.filter(a => a.especialidade === especialidade);
+    if (cargo) {
+      agentes = agentes.filter(agente => agente.cargo === cargo);
     }
 
-    // Ordenação por data de incorporação
-    if (orderBy === 'data_incorporacao') {
-      agentes = agentes.sort((a, b) => {
-        const dateA = a.data_incorporacao ? new Date(a.data_incorporacao) : new Date(0);
-        const dateB = b.data_incorporacao ? new Date(b.data_incorporacao) : new Date(0);
-        return dateA - dateB;
-      });
-    } else if (orderBy === '-data_incorporacao') {
-      agentes = agentes.sort((a, b) => {
-        const dateA = a.data_incorporacao ? new Date(a.data_incorporacao) : new Date(0);
-        const dateB = b.data_incorporacao ? new Date(b.data_incorporacao) : new Date(0);
-        return dateB - dateA;
-      });
+    if (sort === 'dataDeIncorporacao') {
+      agentes = agentes.sort((a, b) => new Date(a.dataDeIncorporacao) - new Date(b.dataDeIncorporacao));
+    } else if (sort === '-dataDeIncorporacao') {
+      agentes = agentes.sort((a, b) => new Date(b.dataDeIncorporacao) - new Date(a.dataDeIncorporacao));
     }
 
     return res.status(200).json(agentes);
   } catch (error) {
-    next(error);
+    console.error('Erro ao buscar agentes:', error);
+    res.status(500).json({ error: 'Erro ao buscar agentes' });
   }
 }
 
-function getAgenteById(req, res, next) {
-  try {
-    const id = req.params.id;
-
-    if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de agente inválido" };
-    }
-
-    const agente = agentesRepository.findById(id);
-    if (!agente) {
-      throw { status: 404, message: "Agente não encontrado" };
-    }
-
-    return res.status(200).json(agente);
-  } catch (error) {
-    next(error);
+function getAgenteById(req, res) {
+  const { id } = req.params;
+  const agente = agentesRepository.findById(id);
+  if (agente) {
+    res.status(200).json(agente);
+  } else {
+    res.status(404).json({ error: 'Agente não encontrado' });
   }
 }
 
-function createAgente(req, res, next) {
+function createAgente(req, res) {
   try {
-    const { nome, matricula, especialidade } = req.body;
-
-    if (!nome || !matricula) {
-      throw { status: 400, message: 'Campos obrigatórios: nome, matricula' };
-    }
-
-    const novoAgente = agentesRepository.create({ nome, matricula, especialidade });
-    return res.status(201).json(novoAgente);
+    validarAgenteCompleto(req.body);
+    const agenteCriado = agentesRepository.create(req.body);
+    res.status(201).json(agenteCriado);
   } catch (error) {
-    next(error);
+    console.error('Erro ao criar agente:', error);
+    res.status(500).json({ error: 'Erro ao criar agente' });
   }
 }
 
-function updateAgente(req, res, next) {
+function updateAgente(req, res) {
+  const { id } = req.params;
+  const dadosAtualizados = req.body;
   try {
-    const id = req.params.id;
-
-    if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de agente inválido" };
+    validarAgenteCompleto(dadosAtualizados);
+    const agenteAtualizado = agentesRepository.update(id, dadosAtualizados);
+    if (agenteAtualizado) {
+      res.status(200).send(agenteAtualizado);
+    } else {
+      res.status(404).send({ error: 'Agente não encontrado' });
     }
-
-    const { nome, matricula, especialidade } = req.body;
-
-    if (!nome || !matricula) {
-      throw { status: 400, message: 'Campos obrigatórios: nome, matricula' };
-    }
-
-    const agenteAtualizado = agentesRepository.update(id, { nome, matricula, especialidade });
-
-    if (!agenteAtualizado) {
-      throw { status: 404, message: "Agente não encontrado" };
-    }
-
-    return res.status(200).json(agenteAtualizado);
   } catch (error) {
-    next(error);
+    console.error('Erro ao atualizar agente:', error);
+    res.status(500).send({ error: 'Erro ao atualizar agente' });
   }
 }
 
-function partialUpdateAgente(req, res, next) {
+function partialupdateAgente(req, res) {
+  const { id } = req.params;
+  const dadosParciais = req.body;
   try {
-    const id = req.params.id;
-
-    if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de agente inválido" };
+    const agenteAtualizado = agentesRepository.partialUpdate(id, dadosParciais);
+    if (agenteAtualizado) {
+      res.status(200).send(agenteAtualizado);
+    } else {
+      res.status(404).send({ error: 'Agente não encontrado' });
     }
-
-    const data = req.body;
-
-    const agenteAtualizado = agentesRepository.partialUpdate(id, data);
-
-    if (!agenteAtualizado) {
-      throw { status: 404, message: "Agente não encontrado" };
-    }
-
-    return res.status(200).json(agenteAtualizado);
   } catch (error) {
-    next(error);
+    console.error('Erro ao atualizar agente:', error);
+    res.status(500).send({ error: 'Erro ao atualizar agente' });
   }
 }
 
-function deleteAgente(req, res, next) {
+function deleteAgente(req, res) {
+  const { id } = req.params;
   try {
-    const id = req.params.id;
-
-    if (!agentesRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de agente inválido" };
+    const agenteDeletado = agentesRepository.remove(id);
+    if (agenteDeletado) {
+      res.status(200).send({ message: `O Agente ${id} foi deletado com sucesso` });
+    } else {
+      res.status(404).send({ error: 'Agente não encontrado' });
     }
-    
-    const sucesso = agentesRepository.remove(id);
-
-    if (!sucesso) {
-      throw { status: 404, message: "Agente não encontrado" };
-    }
-
-    return res.status(204).send();
   } catch (error) {
-    next(error);
+    console.error('Erro ao deletar agente:', error);
+    res.status(500).send({ error: 'Erro ao deletar agente' });
   }
 }
 
@@ -138,6 +97,6 @@ module.exports = {
   getAgenteById,
   createAgente,
   updateAgente,
-  partialUpdateAgente,
+  partialupdateAgente,
   deleteAgente
 };

@@ -1,18 +1,14 @@
-const express = require('express');
-const app = express();
-
-const agentesRoutes = require('./routes/agentesRoutes');
+const express = require('express')
 const casosRoutes = require('./routes/casosRoutes');
-const errorHandler = require('./utils/errorHandler');
+const agentesRoutes = require('./routes/agentesRoutes');
+const app = express();
+const PORT = 3000;
 
 app.use(express.json());
 
-app.use('/agentes', agentesRoutes);
-app.use('/casos', casosRoutes);
+app.use(casosRoutes);
+app.use(agentesRoutes);
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor do Departamento de Polícia rodando em localhost:${PORT}`);
 });
-
-app.use(errorHandler);

@@ -1,75 +1,54 @@
-const { v4: uuidv4,  validate, version } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 
-let agentes = [];
+const Agentes = [
+  {
+    "id": "401bccf5-cf9e-489d-8412-446cd169a0f1",
+    "nome": "Rommel Carneiro",
+    "dataDeIncorporacao": "1992/10/04",
+    "cargo": "delegado"
+  },
+  
+]
 
 function findAll() {
-  return agentes;
+  return Agentes
 }
 
 function findById(id) {
-  return agentes.find(agente => agente.id === id);
+  return Agentes.find(agente => agente.id === id);
 }
 
-function create(data) {
-  if (!data.nome || !data.matricula) {
-    throw new Error("Campos obrigatórios: nome, matricula");
+function create(agente) {
+  const agenteCriado = { id: uuidv4(), ...agente };
+  Agentes.push(agenteCriado);
+  return agenteCriado;
+}
+
+function update(id, dadosAtualizados) {
+  const index = Agentes.findIndex(agente => agente.id === id);
+  if (index !== -1) {
+    Agentes[index] = { ...Agentes[index], ...dadosAtualizados };
+    return Agentes[index];
   }
-
-  const novoAgente = {
-    id: uuidv4(),
-    nome: data.nome,
-    matricula: data.matricula,
-    especialidade: data.especialidade || null,
-  };
-
-  agentes.push(novoAgente);
-  return novoAgente;
+  return null;
 }
 
-function update(id, data) {
-  const index = agentes.findIndex(agente => agente.id === id);
-  if (index === -1) return null;
-
-  if (!data.nome || !data.matricula) {
-    throw new Error("Campos obrigatórios: nome, matricula");
+function partialUpdate(id, dadosParciais) {
+  const index = Agentes.findIndex(agente => agente.id === id);
+  if (index !== -1) {
+    Agentes[index] = { ...Agentes[index], ...dadosParciais };
+    return Agentes[index];
   }
-
-  const agenteAtualizado = {
-    id,
-    nome: data.nome,
-    matricula: data.matricula,
-    especialidade: data.especialidade || null,
-  };
-
-  agentes[index] = agenteAtualizado;
-  return agenteAtualizado;
-}
-
-function partialUpdate(id, data) {
-  const index = agentes.findIndex(agente => agente.id === id);
-  if (index === -1) return null;
-
-  const agenteAtual = agentes[index];
-  const agenteAtualizado = {
-    ...agenteAtual,
-    ...data,
-    id
-  };
-
-  agentes[index] = agenteAtualizado;
-  return agenteAtualizado;
+  return null;
 }
 
 function remove(id) {
-  const index = agentes.findIndex(agente => agente.id === id);
-  if (index === -1) return false;
-
-  agentes.splice(index, 1);
-  return true;
-}
-
-function isValidId(id) {
-  return validate(id) && version(id) === 4;
+  const index = Agentes.findIndex(agente => agente.id === id);
+  if (index !== -1) {
+    Agentes.splice(index, 1);
+    return true;
+  }
+  return false;
 }
 
 module.exports = {
@@ -78,6 +57,5 @@ module.exports = {
   create,
   update,
   partialUpdate,
-  remove,
-  isValidId,
-};
+  remove
+}

@@ -1,167 +1,108 @@
 const casosRepository = require('../repositories/casosRepository');
-const agentesRepository  = require('../repositories/agentesRepository');
+const validarCasoCompleto = require('../utils/validarCaso');
 
-function isValidStatus(status) {
-  return ['aberto', 'solucionado'].includes(status);
-}
-
-function validarCasoCompleto({ titulo, descricao, status, agente_id }) {
-  const camposFaltando = [];
-  if (!titulo) camposFaltando.push('titulo');
-  if (!descricao) camposFaltando.push('descricao');
-  if (!status) camposFaltando.push('status');
-  if (!agente_id) camposFaltando.push('agente_id');
-
-  if (camposFaltando.length > 0) {
-    throw { status: 400, message: `Campos obrigatórios faltando: ${camposFaltando.join(', ')}` };
-  }
-
-  if (!isValidStatus(status)) {
-    throw { status: 400, message: "O campo 'status' pode ser somente 'aberto' ou 'solucionado'" };
-  }
-
-  if (!agentesRepository.isValidId(agente_id)) {
-    throw { status: 400, message: 'agente_id inválido' };
-  }
-
-  const agenteExiste = agentesRepository.findById(agente_id);
-  if (!agenteExiste) {
-    throw { status: 404, message: 'Agente não encontrado' };
-  }
-}
-
-function getAllCasos(req, res, next) {
+const getAllCasos = (req, res) => {
   try {
-    let casos = casosRepository.getAll();
-    const { status, agente_id, keyword } = req.query;
-
-    if (status) {
-      if (!['aberto', 'solucionado'].includes(status)) {
-        throw { status: 400, message: 'Status inválido para filtro' };
-      }
-      casos = casos.filter(caso => caso.status === status);
-    }
+    let casos = casosRepository.findAll();
+    const { agente_id, status } = req.query;
 
     if (agente_id) {
-      if (!agentesRepository.isValidId(agente_id)) {
-        throw { status: 400, message: 'agente_id inválido para filtro' };
-      }
       casos = casos.filter(caso => caso.agente_id === agente_id);
     }
 
-    if (keyword) {
-      const lower = keyword.toLowerCase();
-      casos = casos.filter(caso =>
-        caso.titulo?.toLowerCase().includes(lower) ||
-        caso.descricao?.toLowerCase().includes(lower)
-      );
+    if (status) {
+      casos = casos.filter(caso => caso.status === status);
     }
 
-    return res.json(casos);
-  } catch (err) {
-    next(err);
+    res.status(200).send(casos);
+  } catch (error) {
+    res.status(500).send({ error: 'Erro ao buscar casos' });
+    console.error(error);
   }
 }
 
-function getCasoPorId(req, res, next) {
+const getCasoById = (req, res) => {
+  const { id } = req.params;
+  const caso = casosRepository.findById(id);
+  if (caso) {
+    res.status(200).send(caso);
+  } else {
+    res.status(404).send({ error: 'Caso não encontrado' });
+  }
+};
+
+const createCaso = (req, res) => {
   try {
-    const id = req.params.id;
-
-    if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de caso inválido" };
-    }
-
-    const caso = casosRepository.getById(id);
-    if (!caso) {
-      throw { status: 404, message: "Caso não encontrado" };
-    }
-
-    return res.json(caso);
-  } catch (err) {
-    next(err);
+    const casoData = { ...req.body };
+    delete casoData.id; // Remove id enviado pelo usuário
+    validarCasoCompleto(casoData);
+    const casoCriado = casosRepository.create(casoData);
+    res.status(201).send(casoCriado);
+  } catch (error) {
+    res.status(error.status || 500).send({ error: error.message || 'Erro ao criar caso' });
   }
-}
+};
 
-function createCaso(req, res, next) {
+const updateCaso = (req, res) => {
+  const { id } = req.params;
+  const dadosAtualizados = req.body;
   try {
-    validarCasoCompleto(req.body);
-    const novo = casosRepository.create(req.body);
-    return res.status(201).json(novo);
-  } catch (err) {
-    next(err);
+    validarCasoCompleto(dadosAtualizados);
+    const casoAtualizado = casosRepository.update(id, dadosAtualizados);
+    if (casoAtualizado) {
+      res.status(200).send(casoAtualizado);
+    } else {
+      res.status(404).send({ error: 'Caso não encontrado' });
+    }
+  } catch (error) {
+    res.status(error.status || 500).send({ error: error.message || 'Erro ao atualizar caso' });
   }
-}
+};
 
-function updateCaso(req, res, next) {
+const partialUpdateCaso = (req, res) => {
+  const { id } = req.params;
+  const dadosParciais = req.body;
   try {
-    const id = req.params.id;
-
-    if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de caso inválido" };
+    const casoAtualizado = casosRepository.partialUpdate(id, dadosParciais);
+    if (casoAtualizado) {
+      res.status(200).send(casoAtualizado);
+    } else {
+      res.status(404).send({ error: 'Caso não encontrado' });
     }
-
-    validarCasoCompleto(req.body);
-    const atualizado = casosRepository.update(id, req.body);
-    if (!atualizado) throw { status: 404, message: 'Caso não encontrado' };
-    return res.json(atualizado);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    res.status(error.status || 500).send({ error: error.message || 'Erro ao atualizar caso' });
   }
-}
+};
 
-function partialUpdateCaso(req, res, next) {
-  try {
-    const id = req.params.id;
-
-    if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de caso inválido" };
-    }
-
-    const { status, agente_id } = req.body;
-
-    if (status && !isValidStatus(status)) {
-      throw { status: 400, message: "O campo 'status' pode ser somente 'aberto' ou 'solucionado'" };
-    }
-
-    if (agente_id) {
-      if (!agentesRepository.isValidId(agente_id)) {
-        throw { status: 400, message: 'agente_id inválido' };
-      }
-      const agenteExiste = agentesRepository.findById(agente_id);
-      if (!agenteExiste) {
-        throw { status: 404, message: 'Agente não encontrado' };
-      }
-    }
-    const atualizado = casosRepository.partialUpdate(id, req.body);
-    if (!atualizado) throw { status: 404, message: 'Caso não encontrado' };
-    return res.json(atualizado);
-  } catch (err) {
-    next(err);
+const deleteCaso = (req, res) => {
+  const { id } = req.params;
+  const casoDeletado = casosRepository.remove(id);
+  if (casoDeletado) {
+    res.status(204).send();
+  } else {
+    res.status(404).send({ error: 'Caso não encontrado' });
   }
-}
+};
 
-function deleteCaso(req, res, next) {
-  try {
-    const id = req.params.id;
-
-    if (!casosRepository.isValidId(id)) {
-      throw { status: 400, message: "ID de caso inválido" };
-    }
-
-
-    const sucesso = casosRepository.remove(id);
-    if (!sucesso) throw { status: 404, message: 'Caso não encontrado' };
-    return res.status(204).send();
-  } catch (err) {
-    next(err);
+const searchCasos = (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).send({ error: 'Query de pesquisa não informada' });
   }
-}
+  const termo = q.toLowerCase();
+  const casos = casosRepository.findAll().filter(caso =>
+    caso.titulo.toLowerCase().includes(termo) ||
+    caso.descricao.toLowerCase().includes(termo)
+  );
+  res.status(200).send(casos);
+};
 
-module.exports = {
+module.exports = { 
   getAllCasos,
-  getCasoPorId,
+  getCasoById,
   createCaso,
   updateCaso,
   partialUpdateCaso,
   deleteCaso,
-};
+  searchCasos
+}
