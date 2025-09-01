@@ -1,245 +1,196 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 3 créditos restantes para usar o sistema de feedback AI.
+Você tem 8 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para matheusferx:
 
-Nota final: **30.8/100**
+Nota final: **67.5/100**
 
-Olá, Matheus! 👋🚀 Que bom poder revisar seu projeto e conversar sobre o que você já mandou ver e o que ainda pode melhorar. Vamos juntos destrinchar seu código e fazer sua API brilhar! ✨
+# Feedback para você, Matheusferx! 🚓✨
 
----
-
-## 🎉 Primeiramente, parabéns pelos acertos!
-
-- Você estruturou seu projeto de forma modular, separando bem `routes`, `controllers` e `repositories`. Isso é fundamental para manter o código organizado e escalável. 👏  
-- Seu uso do Express está correto, com o `express.json()` para tratar o corpo das requisições.  
-- Os controllers para agentes e casos estão bem detalhados, com tratamento de erros usando `try/catch` e passando para o middleware de erro com `next(error)`.  
-- Você implementou filtros e busca por palavra-chave nos casos, o que é um bônus muito legal e mostra que você está indo além do básico! 🔍  
-- O uso do `uuid` para gerar IDs e validações básicas de UUID também está presente, o que é ótimo para manter a integridade dos dados.
+Olá, Matheus! Antes de tudo, parabéns pelo esforço e pelo código entregue! 🎉 Você já tem uma base muito boa e conseguiu implementar vários pontos importantes da API do Departamento de Polícia. Vamos juntos destrinchar seu projeto para que você possa avançar ainda mais! 🚀
 
 ---
 
-## 🕵️‍♂️ Agora, vamos analisar os pontos que precisam de atenção para destravar tudo!
+## 🎯 O que você mandou muito bem
 
-### 1. **Problema fundamental: IDs não são UUIDs válidos**
-
-Eu percebi que, apesar de você usar o `uuidv4()` para criar novos agentes e casos, os testes apontaram que os IDs usados não são UUID válidos. Isso geralmente acontece quando, ao criar ou atualizar, o ID não está sendo atribuído corretamente, ou quando você está comparando IDs que não correspondem ao formato esperado.
-
-No seu código, por exemplo, no `repositories/agentesRepository.js`:
-
-```js
-const { v4: uuidv4,  validate, version } = require('uuid');
-
-function isValidId(id) {
-  return validate(id) && version(id) === 4;
-}
-```
-
-Você tem a função `isValidId` correta, mas será que seus agentes e casos realmente estão recebendo IDs gerados pelo `uuidv4()`? No `create` de agentes:
-
-```js
-const novoAgente = {
-  id: uuidv4(),
-  nome: data.nome,
-  matricula: data.matricula,
-  especialidade: data.especialidade || null,
-};
-```
-
-Isso está certo. Porém, se em algum lugar você estiver criando agentes ou casos manualmente, ou se o armazenamento em memória estiver sendo reiniciado em algum ponto, pode ser que IDs inválidos estejam sendo usados.
-
-**Dica:** Confirme que todos os objetos criados possuem o campo `id` gerado pelo `uuidv4()` e que em toda comparação você utiliza esse ID exatamente.
-
-Além disso, no seu `controllers/casosController.js`, quando você valida `agente_id`:
-
-```js
-if (!agentesRepository.isValidId(agente_id)) {
-  throw { status: 400, message: 'agente_id inválido' };
-}
-```
-
-Isso é ótimo, mas imagine se o `agente_id` passado na criação do caso não for um UUID válido? Isso vai gerar erro 400, como esperado.
+- **Organização do código:** Você estruturou seu projeto em pastas de `routes`, `controllers`, `repositories` e `utils`, exatamente como o esperado! Isso é fundamental para manter o código limpo e escalável. 👏  
+- **Endpoints principais funcionando:** Os métodos HTTP para `/agentes` e `/casos` estão implementados, incluindo GET, POST, PUT, PATCH e DELETE.  
+- **Filtros básicos implementados:** Você fez filtros de casos por `status` e `agente_id`, além de filtros por `cargo` e ordenação por `dataDeIncorporacao` nos agentes. Isso já mostra um bom domínio da manipulação de arrays e query params.  
+- **Tratamento de erros básico:** Você já usa status HTTP corretos para vários cenários (200, 201, 404, 500).  
+- **Bônus conquistados:** Parabéns por implementar o endpoint de busca de casos (`/casos/search`) e os filtros simples por status e agente. Isso mostra que você foi além do básico! 👏👏  
 
 ---
 
-### 2. **Status HTTP e corpo de resposta**
+## 🕵️‍♂️ Pontos de atenção e como melhorar (com exemplos práticos!)
 
-Notei que em alguns métodos você retorna o status correto, como 201 para criação e 204 para deleção, o que é ótimo! Porém, em alguns retornos de erro você lança objetos como:
+### 1. Validação e tratamento correto de erros para agentes
 
-```js
-throw { status: 400, message: 'Campos obrigatórios: nome, matricula' };
-```
+Percebi que, em algumas funções do seu `agentesController.js`, quando a validação do payload falha, você está retornando erro 500 (erro interno do servidor), mas o correto seria retornar **400 Bad Request** para indicar que o cliente enviou dados inválidos.  
 
-Essa é uma forma válida, mas é importante garantir que seu middleware de erro (`errorHandler.js`) está capturando esses objetos e respondendo com JSON personalizado. Se isso não estiver configurado, o cliente pode receber erros pouco amigáveis.
-
-Se ainda não fez, implemente um middleware assim:
+Por exemplo, seu `createAgente` está assim:
 
 ```js
-function errorHandler(err, req, res, next) {
-  const status = err.status || 500;
-  const message = err.message || 'Erro interno do servidor';
-  res.status(status).json({ error: message });
-}
-
-module.exports = errorHandler;
-```
-
-E no `server.js`, certifique-se que o middleware de erro está sendo usado **depois** das rotas, como você fez, o que está correto.
-
----
-
-### 3. **Filtros de status e agente_id nos casos**
-
-Você implementou a filtragem por palavra-chave nos casos, que funcionou bem! 🎉 Porém, os filtros por `status` e `agente_id` falharam nos testes.
-
-No `getAllCasos`:
-
-```js
-if (status) {
-  if (!['aberto', 'solucionado'].includes(status)) {
-    throw { status: 400, message: 'Status inválido para filtro' };
+function createAgente(req, res) {
+  try {
+    validarAgenteCompleto(req.body);
+    const agenteCriado = agentesRepository.create(req.body);
+    res.status(201).json(agenteCriado);
+  } catch (error) {
+    console.error('Erro ao criar agente:', error);
+    res.status(500).json({ error: 'Erro ao criar agente' });
   }
-  casos = casos.filter(caso => caso.status === status);
 }
+```
 
-if (agente_id) {
-  if (!agentesRepository.isValidId(agente_id)) {
-    throw { status: 400, message: 'agente_id inválido para filtro' };
+Aqui, se `validarAgenteCompleto` lançar um erro porque o payload está mal formatado, o status 500 não é adequado. Você deve capturar esse erro e retornar status 400, com uma mensagem clara para o cliente. Algo assim:
+
+```js
+function createAgente(req, res) {
+  try {
+    validarAgenteCompleto(req.body);
+    const agenteCriado = agentesRepository.create(req.body);
+    res.status(201).json(agenteCriado);
+  } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('Erro ao criar agente:', error);
+    res.status(500).json({ error: 'Erro ao criar agente' });
   }
-  casos = casos.filter(caso => caso.agente_id === agente_id);
 }
 ```
 
-Aqui, a lógica parece correta, mas atenção:
-
-- Verifique se o `agente_id` que você está comparando realmente tem o mesmo formato e valor do `id` dos agentes. Se os IDs estiverem inconsistentes, o filtro não vai funcionar.  
-- Certifique-se que o parâmetro `agente_id` vem exatamente como UUID, sem espaços ou caracteres extras.  
-- Para o filtro por `status`, o array de status aceitos está correto, mas será que o campo `status` dos casos está sempre preenchido corretamente? Se algum caso estiver com `status` nulo ou diferente, ele não será listado.
+**Dica:** Para isso, seu validador (`validarAgenteCompleto`) pode lançar erros personalizados com `error.name = 'ValidationError'`. Assim, você consegue diferenciar erros de validação dos erros internos do servidor.
 
 ---
 
-### 4. **Filtros e ordenação por data de incorporação nos agentes**
+### 2. Prevenção de alteração do campo `id`
 
-Você implementou o filtro por `especialidade` e ordenação por `data_incorporacao` nos agentes. O filtro por especialidade funciona, mas os testes de ordenação por data de incorporação falharam.
+Notei que nos métodos `updateAgente`, `partialupdateAgente` e também no `updateCaso`, você não está impedindo que o `id` seja alterado via payload. Isso é perigoso, porque o `id` é a chave única do recurso e não deve ser modificado.
 
-No seu controller:
+Por exemplo, na função `updateAgente`:
 
 ```js
-if (orderBy === 'data_incorporacao') {
-  agentes = agentes.sort((a, b) => {
-    const dateA = a.data_incorporacao ? new Date(a.data_incorporacao) : new Date(0);
-    const dateB = b.data_incorporacao ? new Date(b.data_incorporacao) : new Date(0);
-    return dateA - dateB;
-  });
-} else if (orderBy === '-data_incorporacao') {
-  agentes = agentes.sort((a, b) => {
-    const dateA = a.data_incorporacao ? new Date(a.data_incorporacao) : new Date(0);
-    const dateB = b.data_incorporacao ? new Date(b.data_incorporacao) : new Date(0);
-    return dateB - dateA;
-  });
-}
+const dadosAtualizados = req.body;
+// ... atualiza diretamente com dadosAtualizados, que pode conter id
 ```
 
-Aqui, a lógica parece correta, porém:
-
-- Verifique se os agentes possuem o campo `data_incorporacao` preenchido ao serem criados ou atualizados. Se esse campo não estiver sendo salvo no `repository`, a ordenação não vai funcionar.  
-- No seu `agentesRepository.js`, não vi nenhum campo `data_incorporacao` sendo manipulado na criação ou atualização. Isso pode ser o motivo da falha, pois o campo simplesmente não existe nos agentes.  
-
-**Solução:** Inclua o campo `data_incorporacao` na criação e atualização do agente. Por exemplo:
+Você pode evitar isso removendo o `id` do corpo antes de atualizar, assim:
 
 ```js
-function create(data) {
-  const novoAgente = {
-    id: uuidv4(),
-    nome: data.nome,
-    matricula: data.matricula,
-    especialidade: data.especialidade || null,
-    data_incorporacao: data.data_incorporacao || new Date().toISOString(), // ou data enviada
-  };
-  agentes.push(novoAgente);
-  return novoAgente;
-}
+const dadosAtualizados = { ...req.body };
+delete dadosAtualizados.id;
 ```
 
-E no update, permita atualizar essa data se for enviada.
+Ou, melhor ainda, validar e retornar erro 400 se o cliente tentar alterar o `id`.
 
 ---
 
-### 5. **Mensagens de erro customizadas para IDs inválidos**
+### 3. Validação da data de incorporação para agentes
 
-Os testes indicam que as mensagens de erro customizadas para IDs inválidos (tanto para agentes quanto para casos) não estão funcionando corretamente.
+Seu código atual não impede que um agente seja registrado com a `dataDeIncorporacao` no futuro, o que não faz sentido no contexto real. A validação deve garantir que essa data seja hoje ou anterior.
 
-No código, você tem:
+No seu validador (`validarAgenteCompleto`), acrescente a seguinte lógica:
 
 ```js
-if (!agentesRepository.isValidId(id)) {
-  throw { status: 400, message: "ID de agente inválido" };
+const dataIncorp = new Date(agente.dataDeIncorporacao);
+const hoje = new Date();
+if (dataIncorp > hoje) {
+  const error = new Error('Data de incorporação não pode ser no futuro');
+  error.name = 'ValidationError';
+  throw error;
 }
 ```
 
-Isso está correto, mas é importante garantir que:
-
-- Essa validação acontece **antes** da busca no repositório.  
-- O middleware de erro está tratando o objeto de erro e retornando o JSON correto com status e mensagem.  
-
-Se seu middleware de erro não estiver configurado para isso, o cliente pode receber uma resposta genérica. Veja a recomendação do middleware no tópico 2.
+Assim, você evita dados inconsistentes e melhora a qualidade da API.
 
 ---
 
-### 6. **Arquitetura e Estrutura do Projeto**
+### 4. Status code correto para DELETE de casos
 
-Sua estrutura de pastas e arquivos está exatamente como esperado! Isso é um ponto forte, pois facilita a manutenção e entendimento do projeto. 👏
+No seu `deleteCaso`, você retornou status 204 (No Content) quando o caso foi deletado, o que está correto. Porém, no `deleteAgente`, você retorna status 200 com uma mensagem. Para manter consistência, recomendo usar 204 para ambos, pois DELETE geralmente não retorna conteúdo no corpo.
 
-```
-.
-├── controllers/
-│   ├── agentesController.js
-│   └── casosController.js
-├── repositories/
-│   ├── agentesRepository.js
-│   └── casosRepository.js
-├── routes/
-│   ├── agentesRoutes.js
-│   └── casosRoutes.js
-├── utils/
-│   └── errorHandler.js
-├── server.js
-├── package.json
-└── docs/
-    └── swagger.js
+Exemplo para `deleteAgente`:
+
+```js
+if (agenteDeletado) {
+  res.status(204).send();
+} else {
+  res.status(404).send({ error: 'Agente não encontrado' });
+}
 ```
 
 ---
 
-## 📚 Recursos para você aprofundar e corrigir os pontos acima
+### 5. Pequenos ajustes no código para evitar erros comuns
 
-- Para entender melhor como criar APIs RESTful com Express e organizar rotas, dê uma olhada neste vídeo:  
-  https://youtu.be/RSZHvQomeKE  
-- Para aprender mais sobre validação de dados e tratamento de erros personalizados em APIs Node.js:  
+No seu `controllers/agentesController.js`, na função `getAllAgentes`, você está usando `const agentes = agentesRepository.findAll();` e depois tenta modificar `agentes` com filtros e ordenações, mas `const` não permite reatribuição. Isso pode gerar erro.
+
+Troque para `let agentes = agentesRepository.findAll();` para permitir reatribuir:
+
+```js
+let agentes = agentesRepository.findAll();
+```
+
+---
+
+### 6. Endpoint de filtragem e busca por agentes e casos
+
+Você implementou com sucesso filtros simples para casos e agentes, mas ainda faltam alguns filtros mais complexos e mensagens de erro customizadas, que são diferenciais para uma API robusta.
+
+Por exemplo, o filtro por data de incorporação com ordenação crescente e decrescente precisa estar funcionando perfeitamente, e as mensagens de erro ao receber dados inválidos devem ser claras e personalizadas (não genéricas).
+
+---
+
+## 📚 Recursos recomendados para você aprimorar esses pontos
+
+- **Validação de dados e tratamento de erros em APIs Node.js/Express:**  
   https://youtu.be/yNDCRAz7CM8?si=Lh5u3j27j_a4w3A_  
-- Para compreender a manipulação de arrays e ordenação em JavaScript, que vai ajudar na ordenação por data:  
-  https://youtu.be/glSgUKA5LjE?si=t9G2NsC8InYAU9cI  
-- Para entender como funciona o roteamento e middlewares no Express, fundamental para organizar seu projeto:  
+  (Esse vídeo vai te ajudar a entender como lançar e capturar erros de validação para retornar status 400 com mensagens claras.)
+
+- **Status HTTP 400 e 404 explicados:**  
+  https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Status/400  
+  https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Status/404  
+
+- **Organização de rotas com express.Router():**  
   https://expressjs.com/pt-br/guide/routing.html  
+  (Você já está no caminho certo, mas sempre vale reforçar a estrutura para evitar erros futuros.)
+
+- **Manipulação de arrays para filtros e ordenações:**  
+  https://youtu.be/glSgUKA5LjE?si=t9G2NsC8InYAU9cI  
+  (Para aprimorar seus filtros e ordenações, esse vídeo é excelente.)
 
 ---
 
-## 📝 Resumo dos principais pontos para focar:
+## 🗺️ Sobre a estrutura do projeto
 
-- **Garanta que todos os IDs (agentes e casos) são UUIDs válidos gerados pelo `uuidv4()` e que as validações `isValidId` funcionam corretamente.**  
-- **Inclua o campo `data_incorporacao` no agente no repositório para que a ordenação por essa data funcione.**  
-- **Confirme que o middleware de erro (`errorHandler.js`) está configurado para capturar erros lançados como objetos e retornar JSON com status e mensagem personalizados.**  
-- **Revise os filtros de `status` e `agente_id` nos casos para garantir que os IDs usados para comparação são consistentes e válidos.**  
-- **Continue usando a arquitetura modular e mantenha seu código organizado como está. Isso é um grande diferencial!**  
+Sua estrutura está bem organizada e segue o padrão esperado para esse desafio, com pastas separadas para `routes`, `controllers`, `repositories` e `utils`. Isso é ótimo para manutenção e escalabilidade! Só fique atento para manter os arquivos com nomes consistentes (ex: `partialupdateAgente` tem "update" com "u" minúsculo, enquanto em `casosController` está `partialUpdateCaso` com "U" maiúsculo — padronize para facilitar a leitura e evitar confusões).
 
 ---
 
-Matheus, seu empenho está muito claro e você já tem uma base sólida! 💪 Com esses ajustes, sua API vai ficar muito mais robusta e alinhada com os padrões esperados. Continue praticando e explorando essas dicas, que você vai longe! 🚀
+## 📋 Resumo rápido dos principais pontos para focar:
 
-Se precisar de ajuda para implementar qualquer um desses pontos, me chame! Estou aqui para te ajudar a entender cada detalhe. 😉
+- Corrigir o tratamento de erros para retornar **400 Bad Request** em validações falhas, não 500.  
+- Impedir alteração do campo `id` nos métodos PUT e PATCH, removendo ou validando o payload.  
+- Validar que a `dataDeIncorporacao` do agente não seja uma data futura.  
+- Padronizar status HTTP para DELETE (preferir 204 No Content).  
+- Ajustar uso de `const` para `let` quando for reatribuir variáveis (ex: filtros em arrays).  
+- Melhorar mensagens de erro customizadas para casos e agentes.  
+- Padronizar nomenclatura de funções para manter consistência no projeto.  
 
-Abraço e bons códigos! 👨‍💻✨
+---
+
+## Finalizando…
+
+Você está no caminho certo e já construiu uma API funcional com vários recursos importantes! 🎉 Lembre-se que a qualidade da API não é só sobre funcionar, mas também sobre comunicar claramente erros e proteger seus dados (como não permitir alteração do `id`).  
+
+Continue praticando esses detalhes de validação e tratamento de erros, e seu código vai ficar cada vez mais profissional e robusto! 💪
+
+Se precisar, volte aos vídeos indicados para reforçar conceitos importantes. Estou aqui torcendo pelo seu sucesso! 🚀👊
+
+Um abraço,  
+Seu Code Buddy 🤖💙
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
