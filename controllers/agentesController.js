@@ -3,7 +3,7 @@ const validarAgenteCompleto = require('../utils/validarAgente');
 
 function getAllAgentes(req, res) {
   try {
-    const agentes = agentesRepository.findAll();
+    let agentes = agentesRepository.findAll();
     const { cargo, sort } = req.query;
 
     if (cargo) {
@@ -39,6 +39,9 @@ function createAgente(req, res) {
     const agenteCriado = agentesRepository.create(req.body);
     res.status(201).json(agenteCriado);
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(error.status || 400).json(error);
+    }
     console.error('Erro ao criar agente:', error);
     res.status(500).json({ error: 'Erro ao criar agente' });
   }
@@ -46,7 +49,15 @@ function createAgente(req, res) {
 
 function updateAgente(req, res) {
   const { id } = req.params;
-  const dadosAtualizados = req.body;
+  const dadosAtualizados = { ...req.body };
+  if ('id' in dadosAtualizados) {
+    return res.status(400).json({
+      status: 400,
+      message: "Parâmetros inválidos",
+      errors: { id: "Não é permitido alterar o campo 'id' do agente." }
+    });
+  }
+
   try {
     validarAgenteCompleto(dadosAtualizados);
     const agenteAtualizado = agentesRepository.update(id, dadosAtualizados);
@@ -56,14 +67,25 @@ function updateAgente(req, res) {
       res.status(404).send({ error: 'Agente não encontrado' });
     }
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(error.status || 400).json(error);
+    }
     console.error('Erro ao atualizar agente:', error);
     res.status(500).send({ error: 'Erro ao atualizar agente' });
   }
 }
 
-function partialupdateAgente(req, res) {
+function partialUpdateAgente(req, res) {
   const { id } = req.params;
-  const dadosParciais = req.body;
+  const dadosParciais = { ...req.body };
+  if ('id' in dadosParciais) {
+    return res.status(400).json({
+      status: 400,
+      message: "Parâmetros inválidos",
+      errors: { id: "Não é permitido alterar o campo 'id' do agente." }
+    });
+  }
+
   try {
     const agenteAtualizado = agentesRepository.partialUpdate(id, dadosParciais);
     if (agenteAtualizado) {
@@ -72,6 +94,9 @@ function partialupdateAgente(req, res) {
       res.status(404).send({ error: 'Agente não encontrado' });
     }
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      return res.status(error.status || 400).json(error);
+    }
     console.error('Erro ao atualizar agente:', error);
     res.status(500).send({ error: 'Erro ao atualizar agente' });
   }
@@ -82,7 +107,7 @@ function deleteAgente(req, res) {
   try {
     const agenteDeletado = agentesRepository.remove(id);
     if (agenteDeletado) {
-      res.status(200).send({ message: `O Agente ${id} foi deletado com sucesso` });
+      res.status(204).send();
     } else {
       res.status(404).send({ error: 'Agente não encontrado' });
     }
@@ -97,6 +122,6 @@ module.exports = {
   getAgenteById,
   createAgente,
   updateAgente,
-  partialupdateAgente,
+  partialUpdateAgente,
   deleteAgente
 };

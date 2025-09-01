@@ -8,9 +8,18 @@ function validarAgenteCompleto(agente) {
   if (!agente.nome) errors.nome = "Campo nome é obrigatório";
   else if (typeof agente.nome !== 'string') errors.nome = "Campo nome deve ser uma string";
 
-  if (!agente.dataDeIncorporacao) errors.dataDeIncorporacao = "Campo dataDeIncorporacao é obrigatório";
-  else if (typeof agente.dataDeIncorporacao !== 'string' || !dataRegex.test(agente.dataDeIncorporacao)) {
+  if (!agente.dataDeIncorporacao) {
+    errors.dataDeIncorporacao = "Campo dataDeIncorporacao é obrigatório";
+  } else if (typeof agente.dataDeIncorporacao !== 'string' || !dataRegex.test(agente.dataDeIncorporacao)) {
     errors.dataDeIncorporacao = "Campo dataDeIncorporacao deve seguir a formatação 'YYYY-MM-DD'";
+  } else {
+    // Validação para não aceitar datas futuras
+    const dataIncorp = new Date(agente.dataDeIncorporacao);
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0); // Ignora horário, só compara data
+    if (dataIncorp > hoje) {
+      errors.dataDeIncorporacao = "Data de incorporação não pode ser no futuro";
+    }
   }
 
   if (!agente.cargo) errors.cargo = "Campo cargo é obrigatório";
@@ -18,13 +27,14 @@ function validarAgenteCompleto(agente) {
     errors.cargo = `Campo cargo deve ser um dos seguintes: ${cargosPermitidos.join(', ')}`;
   }
 
-  // Se houver erros, lança o objeto personalizado
   if (Object.keys(errors).length > 0) {
-    throw {
+    const err = {
+      name: 'ValidationError',
       status: 400,
       message: "Parâmetros inválidos",
       errors
     };
+    throw err;
   }
 }
 

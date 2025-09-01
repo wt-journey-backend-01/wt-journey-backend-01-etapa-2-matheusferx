@@ -45,7 +45,15 @@ const createCaso = (req, res) => {
 
 const updateCaso = (req, res) => {
   const { id } = req.params;
-  const dadosAtualizados = req.body;
+  const dadosAtualizados = { ...req.body };
+  if ('id' in dadosAtualizados) {
+    return res.status(400).send({
+      status: 400,
+      message: "Parâmetros inválidos",
+      errors: { id: "Não é permitido alterar o campo 'id' do caso." }
+    });
+  }
+
   try {
     validarCasoCompleto(dadosAtualizados);
     const casoAtualizado = casosRepository.update(id, dadosAtualizados);
@@ -61,7 +69,15 @@ const updateCaso = (req, res) => {
 
 const partialUpdateCaso = (req, res) => {
   const { id } = req.params;
-  const dadosParciais = req.body;
+  const dadosParciais = { ...req.body };
+  if ('id' in dadosParciais) {
+    return res.status(400).send({
+      status: 400,
+      message: "Parâmetros inválidos",
+      errors: { id: "Não é permitido alterar o campo 'id' do caso." }
+    });
+  }
+  
   try {
     const casoAtualizado = casosRepository.partialUpdate(id, dadosParciais);
     if (casoAtualizado) {
